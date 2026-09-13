@@ -74,7 +74,7 @@
     {%- set file_format = fabric__resolve_file_format(external) -%}
     {%- set options = external.get('options', {}) -%}
 
-    {%- set openrowset_sql = fabric__build_openrowset(location, file_format, options, columns) -%}
+    {%- set openrowset_sql = fabric__build_openrowset(location, file_format, options, columns, source_node.name) -%}
     {%- set view_relation = source(source_node.source_name, source_node.name).include(database=False) -%}
 
     {%- set ddl %}
@@ -146,7 +146,7 @@ FROM {{ openrowset_sql | replace("'", "''") }}
 
 
 {#- New macro (no upstream equivalent): builds the OPENROWSET(BULK ...) expression with format, options, and WITH clause. Upstream has no counterpart because it uses CREATE EXTERNAL TABLE DDL instead. -#}
-{% macro fabric__build_openrowset(location, file_format, options, columns) %}
+{% macro fabric__build_openrowset(location, file_format, options, columns, view_alias) %}
     {%- set parts = [] -%}
     {%- set escaped_location = location | replace("'", "''") -%}
 
@@ -192,7 +192,7 @@ FROM {{ openrowset_sql | replace("'", "''") }}
         {%- if col_defs | length > 0 -%}
             {%- do parts.append("WITH (") -%}
             {%- do parts.append(col_defs | join(",\n")) -%}
-            {%- do parts.append(")") -%}
+            {%- do parts.append(") AS [{{view_alias}}]") -%}
         {%- endif -%}
     {%- endif -%}
 
